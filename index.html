@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <title>Mania</title>
+</head>
+
+<body>
+    <div id="app">
+        <canvas id="GameRender"></canvas>
+    </div>
+    <dialog id="SongSelect">
+
+        <div id="CloseSongs">
+            <iconify-icon icon="basil:cancel-solid" height="40" width="40"></iconify-icon>
+        </div>
+        <h1>Song Selection</h1>
+        <div id="SearchHolder">
+            <input type="text" id="SearchInput" placeholder="Search for a song" />
+            <button id="SearchButton">Search</button>
+        </div>
+
+        <div id="BeatmapHolder">
+            <div class="Beatmap" id="TemplateBeatmap">
+                <div class="BeatmapInfo">
+                    <h2 class="BeatMapTitle">Beatmap Name</h2>
+                    <h3 class="BeatMapArtist">Beatmap Artist</h3>
+                    <h3 class="BeatMapDifficulty">Beatmap Mapper</h3>
+                </div>
+                <div class="BeatmapCover">
+                    <img src="/assets/cover.jpg" alt="Beatmap Cover" class="BeatmapImg" />
+                </div>
+                <div class="BeatmapIcons">
+                    <div class="DownloadButton">
+                        <iconify-icon icon="basil:download-solid" height="50" width="50"></iconify-icon>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </dialog>
+    <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>

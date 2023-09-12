@@ -1,0 +1,124 @@
+body,
+html {
+
+    margin: 0;
+    padding: 0;
+
+    width: 100vw;
+    height: 100vh;
+
+    overflow: hidden;
+
+}
+
+#app {
+
+    width: 100vw;
+    height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+
+}
+
+#GameRender {
+
+    max-width: 100vw;
+    max-height: 100vh;
+
+    aspect-ratio: 9/16;
+
+}
+
+#BeatmapHolder {
+
+    width: 80vw;
+    height: 70vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+
+
+}
+
+#SearchHolder {
+
+    width: 100%;
+    height: 30px;
+
+    display: flex;
+    justify-content: center;
+
+}
+
+
+svg {
+
+    width: 30px;
+    height: 30px;
+
+}
+
+.Beatmap {
+
+    width: 500px;
+    height: 150px;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    border-radius: 15px;
+    border: 1px solid #000000;
+
+    background-color: #b6b6b6;
+
+    margin: 5px;
+    padding: 5px;
+
+}
+
+
+.BeatmapInfo>h2,
+.BeatmapInfo>h3 {
+
+    margin: 0;
+    padding: 0;
+
+}
+
+
+.Beatmap:hover {
+
+    background-color: #9e9e9e
+
+}
+
+.BeatmapImg {
+
+    width: 100px;
+    height: 100px;
+
+}
+
+#TemplateBeatmap {
+    display: none;
+}
+
+.DownloadButton, #CloseSongs {
+
+    cursor: pointer;
+
+}
+
+#CloseSongs{
+
+    position: absolute;
+    top: 10px;
+    right: 10px;
+
+}
