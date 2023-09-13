@@ -1,5 +1,6 @@
 import localforge from "localforage"
 import { GetAllBeatmaps, GetOSZInfo } from "./game/osuMapReader";
+import { GameState } from "./main";
 
 var downloadedBeatmaps: any = {}
 
@@ -9,19 +10,68 @@ localforge.config({
     driver: localforge.INDEXEDDB
 })
 
+var CursorIndex = 0
+var DifficultyIndex = 0
+
+var Diffs: any = {}
+
+var SelectingDiff = false
+
 export default function Render(deltaTime: number, ctx: CanvasRenderingContext2D) {
 
     // render black background
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, 1080, 1920);
 
+    Object.values(window.LoadedSongs).forEach((song: any, index: number) => {
 
-}
+        let x = 25
+        let y = (index + 1) * 40
 
-function blobToDataURL(blob: Blob, callback: Function) {
-    var a = new FileReader();
-    a.onload = function (e: any) { callback(e.target.result); }
-    a.readAsDataURL(blob);
+        if (SelectingDiff == false) {
+            if (CursorIndex == index) {
+                ctx.fillStyle = "#00FF00"
+            } else {
+                ctx.fillStyle = "#FFFFFF"
+            }
+        } else {
+            ctx.fillStyle = "#FFFFFF"
+            if (CursorIndex == index) {
+                ctx.globalAlpha = 1
+            } else {
+                ctx.globalAlpha = 0.5
+            }
+        }
+        ctx.font = "30px Arial"
+        ctx.fillText(`${song.Info.metadata.Title} - ${song.Info.metadata.Artist}`, x, y)
+
+        ctx.globalAlpha = 1
+
+        if (CursorIndex == index) {
+            ctx.fillStyle = "#ffffff"
+
+            Diffs = song.AllBeatmaps
+            song.AllBeatmaps.forEach((diff: any, index: number) => {
+
+                if (DifficultyIndex == index && SelectingDiff) {
+                    ctx.fillStyle = "#00FF00"
+                } else {
+                    ctx.fillStyle = "#FFFFFF"
+                }
+
+                let x = 650
+                let y = (index + 1) * 40
+
+                ctx.fillText(`${diff.Info.metadata.Version} - ${diff.Info.difficulty.OverallDifficulty}★`, x, y)
+
+
+            })
+
+        }
+
+    })
+
+
 }
 
 function ReloadMaps() {
@@ -34,20 +84,16 @@ function ReloadMaps() {
 
                 downloadedBeatmaps[key] = value
 
-                blobToDataURL(downloadedBeatmaps[key], async (dataURI: string) => {
+                let beatmaps = await GetAllBeatmaps(downloadedBeatmaps[key])
+                let chartInfo = await GetOSZInfo(downloadedBeatmaps[key])
 
-                    let beatmaps = await GetAllBeatmaps(dataURI)
-                    let chartInfo = await GetOSZInfo(dataURI)
+                window.LoadedSongs[key] = {
 
-                    window.LoadedSongs[key] = {
+                    "OszData": downloadedBeatmaps[key],
+                    "Info": chartInfo,
+                    "AllBeatmaps": beatmaps
 
-                        "OszData": dataURI,
-                        "Info": chartInfo,
-                        "AllBeatmaps": beatmaps
-
-                    }
-
-                })
+                }
 
 
             })
@@ -61,6 +107,65 @@ function ReloadMaps() {
 export async function setupMenu() {
 
     // get all entries in index.db
+
+    window.InputManager.addEventListener("keydown", (e: any) => {
+
+        if (e.detail.key == "ArrowDown") {
+
+            if (SelectingDiff) {
+                DifficultyIndex++
+                if (DifficultyIndex > Diffs.length - 1) DifficultyIndex = 0
+            } else {
+                CursorIndex++
+                if (CursorIndex > Object.values(window.LoadedSongs).length - 1) CursorIndex = 0
+            }
+
+        }
+
+        if (e.detail.key == "ArrowUp") {
+
+            if (SelectingDiff) {
+                DifficultyIndex--
+                if (DifficultyIndex < 0) DifficultyIndex = Diffs.length - 1
+            } else {
+                CursorIndex--
+                if (CursorIndex < 0) CursorIndex = Object.values(window.LoadedSongs).length - 1
+            }
+
+        }
+
+        if (e.detail.key == "ArrowRight") {
+
+            if (SelectingDiff == false) {
+                SelectingDiff = true
+                DifficultyIndex = 0
+            }
+
+        }
+
+        if (e.detail.key == "ArrowLeft") {
+
+            if (SelectingDiff == true) {
+                SelectingDiff = false
+                DifficultyIndex = 0
+            }
+
+        }
+
+        if (e.detail.key == "Enter") {
+
+            if (SelectingDiff && window.GameInfo.state == GameState.Menu) {
+
+                window.globalFunctions.changeState(2)
+                let song: any = Object.values(window.LoadedSongs)[CursorIndex]
+                window.globalFunctions.startGame(song.OszData, Diffs[DifficultyIndex].FileName)
+
+            }
+
+        }
+
+    })
+
 
     ReloadMaps()
 
@@ -135,6 +240,7 @@ export async function setupMenu() {
                 localforge.setItem(beatmapID, beatmapBlob).then(() => {
 
                     console.log("beatmap downloaded and saved to index.db")
+                    ReloadMaps()
 
                 })
 
@@ -145,5 +251,27 @@ export async function setupMenu() {
         })
 
     })()
+
+}
+
+export async function downloadBeatmapFromID(id: number | string) {
+
+    // download the map osz file and save it to index.db
+    let beatmapID = id
+    let beatmap = await fetch("https://api.nerinyan.moe/d/" + id)
+    let beatmapBlob = await beatmap.blob()
+    let beatmapURL = URL.createObjectURL(beatmapBlob)
+
+    localforge.config({
+        name: "osuWebPlayer",
+        storeName: "beatmaps",
+        driver: localforge.INDEXEDDB
+    })
+
+    localforge.setItem(String(beatmapID), beatmapBlob).then(() => {
+
+        console.log("beatmap downloaded and saved to index.db")
+
+    })
 
 }

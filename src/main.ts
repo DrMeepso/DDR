@@ -6,7 +6,7 @@ const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 import Menu, { setupMenu } from "./menu";
 import Game, { setupGame } from "./game/game";
 
-enum GameState {
+export enum GameState {
 
     Menu,
     Pause,
@@ -93,7 +93,7 @@ setInterval(() => {
 
 }, 1000 / 60)
 
-GameStateManager.addEventListener("stateChange", (e) => {
+GameStateManager.addEventListener("stateChange", (e: any) => {
 
     GameInfo.state = e.detail.state;
 
@@ -110,3 +110,7 @@ globalFunctions.startGame = (BeatmapURL: string, Difficulty: number) => {
     GameStateManager.dispatchEvent(new CustomEvent("startgame", { detail: { BeatmapURL, Difficulty } }))
 
 }
+
+import { downloadBeatmapFromID } from "./menu";
+
+globalFunctions.downloadBeatmapFromID = downloadBeatmapFromID;

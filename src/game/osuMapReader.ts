@@ -1,16 +1,21 @@
 import { Note, LaneType, Slider } from "./game";
 import * as zip from "@zip.js/zip.js"
 
-export async function readFile(url: string, difficulty: number): Promise<any> {
+export async function readFile(url: string | Blob, difficulty: string): Promise<any> {
 
     return new Promise(async (resolve, reject) => {
 
-        let oszData = new zip.HttpReader(url)
+        let oszData
+        if (typeof url == "string") {
+            oszData = new zip.HttpReader(url)
+        } else {
+            oszData = new zip.BlobReader(url)
+        }
 
         let oszReader = new zip.ZipReader(oszData)
         let files = await oszReader.getEntries()
 
-        let osuFile: zip.Entry | undefined = files.filter((file) => file.filename.indexOf(".osu") != -1)[difficulty]
+        let osuFile: zip.Entry | undefined = files.filter((file) => file.filename.indexOf(".osu") != -1 && file.filename == difficulty)[0]
 
         if (osuFile == undefined || osuFile.getData == undefined) {
 
@@ -33,6 +38,7 @@ export async function readFile(url: string, difficulty: number): Promise<any> {
         let songData = await songFile.getData(new zip.BlobWriter())
 
         let data = { "HitObjects": parseOsu(osuData), "SongData": songData }
+        console.log(data)
         resolve(data)
 
     })
@@ -118,11 +124,16 @@ function parseSection(sectionText: string) {
     return sectionData;
 }
 
-export function GetAllBeatmaps(url: string) {
+export function GetAllBeatmaps(url: string | Blob) {
 
     return new Promise(async (resolve, reject) => {
 
-        let oszData = new zip.HttpReader(url)
+        let oszData 
+        if (typeof url == "string") {
+            oszData = new zip.HttpReader(url)
+        } else {
+            oszData = new zip.BlobReader(url)
+        }
 
         let oszReader = new zip.ZipReader(oszData)
         let files = await oszReader.getEntries()
@@ -147,7 +158,7 @@ export function GetAllBeatmaps(url: string) {
                 }
                 let songData = await songFile.getData(new zip.BlobWriter())
 
-                let data = { "SongData": songData, "Info": info, "Difficulty": index }
+                let data = { "SongData": songData, "Info": info, "Difficulty": index, "FileName": file.filename }
                 beatmaps.push(data)
 
                 if (index == filesToRead.length - 1) resolve(beatmaps)
@@ -162,11 +173,16 @@ export function GetAllBeatmaps(url: string) {
 
 }
 
-export function GetOSZInfo(url: string){
+export function GetOSZInfo(url: string | Blob){
 
     return new Promise(async (resolve, reject) => {
 
-        let oszData = new zip.HttpReader(url)
+        let oszData
+        if (typeof url == "string") {
+            oszData = new zip.HttpReader(url)
+        } else {
+            oszData = new zip.BlobReader(url)
+        }
 
         let oszReader = new zip.ZipReader(oszData)
         let files = await oszReader.getEntries()

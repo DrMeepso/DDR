@@ -112,9 +112,9 @@ export class Slider extends Note {
 
 var MapNotes: Note[] = []
 
-var time = 0;
+var time = -5000;
 
-const SongPlayer = document.createElement("audio") as HTMLAudioElement;
+var SongPlayer = document.createElement("audio") as HTMLAudioElement;
 
 export function setupGame() {
 
@@ -178,6 +178,14 @@ export function setupGame() {
 
     window.GameStateManager.addEventListener("startgame", (e: any) => {
 
+        SongPlayer = document.createElement("audio") as HTMLAudioElement;
+
+        SongPlayer.volume = 0.3
+
+        SongPlayer.onended = () => {
+            window.globalFunctions.changeState(0)
+        }
+
         GameInfo.Score = 0;
         GameInfo.Accuaracy = 0;
         GameInfo.AccuaracyInfo.GrossAccuaracy = 0;
@@ -191,6 +199,7 @@ export function setupGame() {
 
         readFile(URL, Difficulty).then((data) => {
 
+            time = -5000
             MapNotes = data.HitObjects;
 
             function blobToDataURL(blob: Blob, callback: Function) {
@@ -202,7 +211,7 @@ export function setupGame() {
             blobToDataURL(data.SongData, (dataURI: string) => {
                 let uri = dataURI.replace("application/octet-stream", "audio/mpeg")
                 SongPlayer.src = uri;
-                SongPlayer.play();
+                SongPlayer.play()
             })
 
 
@@ -247,7 +256,9 @@ function AddToScore(maxDistance: number, distance: number, miss: boolean = false
 
 export default function Render(deltaTime: number, ctx: CanvasRenderingContext2D) {
 
-    time = SongPlayer.currentTime * 1000;
+    ctx.save();
+
+    time = (SongPlayer.currentTime * 1000) + window.UserSettings.InputSettings.SongOffset;
 
     judgeMentLine = canvas.height - 125;
 
@@ -256,25 +267,6 @@ export default function Render(deltaTime: number, ctx: CanvasRenderingContext2D)
 
     // draw input keys as circles at the bottom of the screen
     ctx.fillStyle = "#ffffff";
-
-    let missedSliders: any = MapNotes.filter((note) => note instanceof Slider && note.missed == true)
-    for (let i = 0; i < missedSliders.length; i++) {
-
-        let note: Slider = missedSliders[i];
-
-        ctx.globalAlpha = 0.5;
-
-        let x = note.lane * (canvas.width / 4) + (canvas.width / 8);
-
-        // draw line between start and end
-        ctx.beginPath();
-        ctx.moveTo(x, note.getY(time));
-        ctx.lineTo(x, note.getY(time) - note.getLength());
-        ctx.stroke();
-
-        ctx.globalAlpha = 1;
-
-    }
 
     let pos = canvas.width / 4
     var i = 0;
@@ -313,7 +305,7 @@ export default function Render(deltaTime: number, ctx: CanvasRenderingContext2D)
             ctx.strokeStyle = "#0000ff";
 
             if (note.missed == true) {
-                continue;
+                ctx.globalAlpha = 0.5;
             }
 
             let missTime = (200 / note.speed) * 1000
@@ -344,6 +336,8 @@ export default function Render(deltaTime: number, ctx: CanvasRenderingContext2D)
 
             }
 
+            ctx.globalAlpha = 1;
+
         } else {
 
             ctx.fillStyle = "#ffffff";
@@ -365,6 +359,8 @@ export default function Render(deltaTime: number, ctx: CanvasRenderingContext2D)
         }
 
     }
+
+    ctx.restore();
 
     // draw stats on screen
     ctx.fillStyle = "#ffffff";
