@@ -27,6 +27,7 @@ export async function readFile(url: string | Blob, difficulty: string): Promise<
         console.log(osuFile.filename)
 
         let osuData = await osuFile.getData(new zip.TextWriter())
+        console.log(osuData)
 
         let info = getBeatmapInfo(osuData)
 
@@ -39,6 +40,7 @@ export async function readFile(url: string | Blob, difficulty: string): Promise<
 
         let data = { "HitObjects": parseOsu(osuData), "SongData": songData }
         console.log(data)
+
         resolve(data)
 
     })
@@ -54,8 +56,9 @@ function parseOsu(osuContent: string) {
 
     var Notes: Note[] = []
 
-    const AR: number = info.difficulty.ApproachRate as unknown as number
-
+    var SliderVelo: number = info.difficulty.SliderMultiplier as unknown as number
+    var BPM = info.timeingPoints[0].bpm as unknown as number
+    
     HitObjects.forEach((HitObject: string) => {
 
         let thisHitObject = HitObject.split(",")
@@ -66,16 +69,21 @@ function parseOsu(osuContent: string) {
 
         let sliderEnd = (thisHitObject[5].split(":")[0] as unknown as number)
 
+        let dist = ((1920/480) * 100) * SliderVelo
+        let bpmTime = 60/BPM
+
+        const velocity = dist / bpmTime
+
         if (sliderEnd > 0) {
 
             let durration = sliderEnd - time
 
-            let localSlider = new Slider(time, AR * 500, lane as LaneType, durration)
+            let localSlider = new Slider(time, velocity, lane as LaneType, durration)
             Notes.push(localSlider)
 
         } else {
 
-            let localNote = new Note(time, AR * 500, lane as LaneType)
+            let localNote = new Note(time, velocity, lane as LaneType)
             Notes.push(localNote)
 
         }
@@ -87,25 +95,28 @@ function parseOsu(osuContent: string) {
 
 }
 
-export function getBeatmapInfo(beatmapText: string): { metadata: any, difficulty?: any, general: any } {
+export function getBeatmapInfo(beatmapText: string): { metadata: any, difficulty?: any, general: any, timeingPoints: any } {
     const sections = beatmapText.split(/\n\s*\[([^\]]+)\]\s*\n/);
 
     const metadataSection = sections.find(section => section.startsWith("Metadata"))
     const difficultySection = sections.find(section => section.startsWith("Difficulty"));
     const generalSection = sections.find(section => section.startsWith("General"));
+    const timeingPointsSection = sections.find(section => section.startsWith("TimingPoints"));
 
-    if (!metadataSection || !difficultySection || !generalSection) {
+    if (!metadataSection || !difficultySection || !generalSection || !timeingPointsSection) {
         throw new Error("Missing required sections in the beatmap file.");
     }
 
     const metadata = parseSection(sections[sections.indexOf(metadataSection) + 1]);
     const difficulty = parseSection(sections[sections.indexOf(difficultySection) + 1]);
     const general = parseSection(sections[sections.indexOf(generalSection) + 1]);
+    const timeingPoints = parseTimingPoints(sections[sections.indexOf(timeingPointsSection) + 1]);
 
     return {
         metadata,
         difficulty,
         general,
+        timeingPoints,
     };
 }
 
@@ -122,6 +133,27 @@ function parseSection(sectionText: string) {
     }
 
     return sectionData;
+}
+
+function parseTimingPoints(timingPoints: string) {
+
+    let timingPointsArray = timingPoints.split("\n").filter((line: string) => line != "")
+
+    let timingPointsObject: any[] = []
+
+    timingPointsArray.forEach((timingPoint: string) => {
+
+        let timingPointArray = timingPoint.split(",")
+
+        let time = timingPointArray[0] as unknown as number
+        let bpm = timingPointArray[1] as unknown as number
+
+        timingPointsObject.push({ "time": time, "bpm": bpm })
+
+    })
+
+    return timingPointsObject
+
 }
 
 export function GetAllBeatmaps(url: string | Blob) {

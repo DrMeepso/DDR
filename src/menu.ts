@@ -159,6 +159,7 @@ export async function setupMenu() {
                 window.globalFunctions.changeState(2)
                 let song: any = Object.values(window.LoadedSongs)[CursorIndex]
                 window.globalFunctions.startGame(song.OszData, Diffs[DifficultyIndex].FileName)
+                window.mapInfo = Diffs[DifficultyIndex].Info
 
             }
 
@@ -183,6 +184,8 @@ export async function setupMenu() {
 
         let beatmaps = await fetch("https://api.chimu.moe/v1/search?mode=3")
         let beatmapsJson = await beatmaps.json()
+
+        await localforge.ready()
 
         let maps: any = {}
 
@@ -211,7 +214,7 @@ export async function setupMenu() {
 
         })
 
-        Object.values(maps).forEach((map: any) => {
+        Object.values(maps).forEach(async (map: any) => {
 
             let beatMapHTML = document.getElementById("TemplateBeatmap") as HTMLDivElement;
             let beatMap = beatMapHTML.cloneNode(true) as HTMLDivElement;
@@ -222,14 +225,75 @@ export async function setupMenu() {
             beatMap.querySelector("img")!.src = `https://assets.ppy.sh/beatmaps/${map.SetId}/covers/list.jpg`
             beatMap.id = ""
 
+            var isDownloaded = (await localforge.getItem(map.SetId.toString())) == null ? false : true
+
             beatMap.querySelector(".DownloadButton")?.setAttribute("BeatmapID", map.SetId)
+            if (isDownloaded) {
+                beatMap.querySelector(".Icon")?.setAttribute("icon", "basil:trash-solid")
+            }
             beatMap.querySelector(".DownloadButton")?.addEventListener("click", async (e) => {
+
+                if (isDownloaded) {
+
+                    localforge.removeItem(map.SetId.toString()).then(() => {
+
+                        console.log("beatmap removed from index.db")
+                        beatMap.querySelector(".Icon")?.setAttribute("icon", "basil:download-solid")
+                        ReloadMaps()
+                        isDownloaded = false
+
+                    })
+                    return
+                }
 
                 // download the map osz file and save it to index.db
                 let beatmapID = map.SetId
+                console.log("downloading beatmap " + beatmapID)
                 let beatmap = await fetch("https://api.nerinyan.moe" + map.ChildrenBeatmaps[0].DownloadPath)
-                let beatmapBlob = await beatmap.blob()
-                let beatmapURL = URL.createObjectURL(beatmapBlob)
+
+                if (beatmap.ok == false){
+                    alert("Beatmap download failed")
+                    return
+                }
+
+                if (beatmap.headers.get("content-length") == null) return
+                let contentLength = parseInt(beatmap.headers.get("content-length") as string)
+
+                const Icon = beatMap.querySelector(".Icon") as HTMLDivElement
+                Icon.style.display = "none"
+
+                function LissenToHTTPStream(stream: ReadableStream, length: number, updateCB: (progress: number) => void): Promise<Uint8Array> {
+
+                    return new Promise((resolve, reject) => {
+
+                        var content: Uint8Array = new Uint8Array()
+
+                        beatmap.body?.pipeTo(new WritableStream({
+                            write(chunk) {
+                                content = new Uint8Array([...content, ...chunk])
+                                updateCB(content.length / length)
+                                if (content.length == length) {
+                                    resolve(content)
+                                }
+                            }
+                        }))
+
+                    })
+
+                }
+
+                let parent = beatMap.querySelector(".percentageText") as HTMLDivElement
+                let Data: Uint8Array = await LissenToHTTPStream(beatmap.body as ReadableStream, contentLength, (progress) => {
+
+                    console.log(progress)
+                    parent.innerText = Math.round(progress * 100) + "%"
+
+                })
+
+                parent.innerText = ""
+
+                console.log("beatmap downloaded")
+                let beatmapBlob = new Blob([Data], { type: "application/zip" })
 
                 localforge.config({
                     name: "osuWebPlayer",
@@ -240,7 +304,10 @@ export async function setupMenu() {
                 localforge.setItem(beatmapID, beatmapBlob).then(() => {
 
                     console.log("beatmap downloaded and saved to index.db")
+                    beatMap.querySelector(".Icon")?.setAttribute("icon", "basil:trash-solid")
+                    Icon.style.display = "block"
                     ReloadMaps()
+                    isDownloaded = true
 
                 })
 

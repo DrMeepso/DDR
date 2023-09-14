@@ -56,6 +56,7 @@ declare global {
         GameInfo: any;
         globalFunctions: any;
         LoadedSongs: any;
+        mapInfo: any;
     }
 
 }
@@ -66,6 +67,7 @@ window.GameStateManager = GameStateManager;
 window.GameInfo = GameInfo;
 window.globalFunctions = globalFunctions;
 window.LoadedSongs = {};
+window.mapInfo = {};
 
 canvas.width = 1080;
 canvas.height = 1920;

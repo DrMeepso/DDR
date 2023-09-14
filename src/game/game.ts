@@ -143,7 +143,6 @@ export function setupGame() {
             let MaxTimeOut = (300 / closestNote.speed) * 1000
             if (Math.abs(closestNote.time - time) < MaxTimeOut) {
                 // remove note
-                MapNotes.splice(MapNotes.indexOf(closestNote), 1)
                 AddToScore(MaxTimeOut, Math.abs(closestNote.time - time))
             }
 
@@ -164,7 +163,6 @@ export function setupGame() {
 
             if (Math.abs((parseFloat(closestNote.time.toString()) + closestNote.durration) - time) < MaxTimeOut) {
                 // remove note
-                MapNotes.splice(MapNotes.indexOf(closestNote), 1)
                 AddToScore(MaxTimeOut, Math.abs((parseFloat(closestNote.time.toString()) + closestNote.durration) - time), false, false)
             } else {
                 closestNote.isBeingHeld = false;
@@ -289,7 +287,33 @@ export default function Render(deltaTime: number, ctx: CanvasRenderingContext2D)
     // render notes
     ctx.fillStyle = "#ffffff";
 
+    var BPM = window.mapInfo.timeingPoints[0].bpm as unknown as number
+    var SliderVelo = window.mapInfo.difficulty.SliderMultiplier as unknown as number
+    
+    window.mapInfo.timeingPoints.forEach((point: any) => {
+
+        if (point.time <= time) {
+            
+            if (point.bpm > 0){
+                BPM = point.bpm as unknown as number
+            } else {
+                SliderVelo = -(point.bpm/100) * window.mapInfo.difficulty.SliderMultiplier as unknown as number
+            }
+
+        }
+
+    })
+
+    let dist = ((1920/480) * 100) * SliderVelo
+    let bpmTime = 60/BPM
+
+    const velocity = dist / bpmTime
+
+    console.log(velocity)
+
     for (let note of MapNotes) {
+
+        note.speed = velocity
 
         if (note instanceof Slider) {
 
@@ -344,7 +368,6 @@ export default function Render(deltaTime: number, ctx: CanvasRenderingContext2D)
 
             let missTime = (200 / note.speed) * 1000
             if (time - missTime > note.time) {
-                MapNotes.splice(MapNotes.indexOf(note), 1)
                 AddToScore(1, 0, true)
             }
 
